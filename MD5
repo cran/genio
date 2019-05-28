@@ -1,6 +1,6 @@
-d0e499291f5b7fa358a9ea606b4b728b *DESCRIPTION
+15d718f197336a3214fa47262bc386c8 *DESCRIPTION
 8a2b7bcb4355b09b1bb466f58bbb6841 *NAMESPACE
-da5e85effc5080aa445c61a4ea4cc2ee *NEWS.md
+6b5db33cc7bf2f02c3f2a222cb8db1b2 *NEWS.md
 b8cc2fa032ba1c98aa9a6df4640d5f82 *R/RcppExports.R
 6ebdcaa553ea5c82e4bc7b22623bab5f *R/add_ext.R
 6aa7b4762306ce4d7f1ff83f2447ca82 *R/delete_files_plink.R
@@ -29,9 +29,9 @@ e48d5f86dc71bbc3ff3ae3419b1aca6a *R/write_bed.R
 5022a7068dd5d4e87293854ccc8d8556 *R/write_tab_generic.R
 4f403e6820de2c0a3e24dd3b6f527940 *README.md
 cbe9ef2ab458834efd99bb1b7f6e0df0 *build/vignette.rds
-059b7de74a9fa8c94f28d82ff3a94156 *inst/doc/genio.R
-b29f39c00387f3c420a5d89308ef125e *inst/doc/genio.Rmd
-19b1268264101d6c559859625a3e8fd3 *inst/doc/genio.html
+26302b7d2274f6488edbea83f3f47f43 *inst/doc/genio.R
+d90b57a6b497bb30e2f3db2558798120 *inst/doc/genio.Rmd
+5ad35a8f50a6cef808522be23b0bace5 *inst/doc/genio.html
 25cd41683b7bc4b64bf224f9c99b73ec *inst/extdata/sample.bed
 c2bcce5089f713fcac8cc35b3dfc619d *inst/extdata/sample.bim
 fc775f97136318f0c6fa0a1bdfcb04cd *inst/extdata/sample.fam
@@ -62,8 +62,8 @@ c806b40374dc9d6f808ed5eec894f7b7 *man/write_ind.Rd
 6fd1bfd291a231d19ca18c2494614a2f *man/write_plink.Rd
 47e0a760b10631c6b24aa4f7d415c797 *man/write_snp.Rd
 099cb6bbfa5a3f9919727ffbe115a59b *src/RcppExports.cpp
-057c3d1b47672c81ac1543660cc40a7c *src/read_bed_cpp.cpp
-e3a5c98139c272b6fd4220a0add3accc *src/write_bed_cpp.cpp
+cb61dd115a38b3987ee75818f615b6b6 *src/read_bed_cpp.cpp
+03ba87d0de48a374e9324ddf73534136 *src/write_bed_cpp.cpp
 c50cc5af3dd765786a92f7b1f161a98b *tests/testthat.R
 85c4acf863fe13041951fc87252fcea3 *tests/testthat/dummy-33-101-0.1.bed
 6ffd224c4ae92a0855bbf140c805a04f *tests/testthat/dummy-33-101-0.1.bim
@@ -83,4 +83,4 @@ a250782554be4d4d27b32f978a8525c7 *tests/testthat/dummy-7-10-0.1.fam
 690b737b73ed966ea801d83e7c437241 *tests/testthat/make_plink_examples.bash
 05d4e211a8fefbaed2564722c7f37f69 *tests/testthat/test-genio.R
 5bace1749af43104c256dc6ca14bf2dc *tests/testthat/test-write_bed.R
-b29f39c00387f3c420a5d89308ef125e *vignettes/genio.Rmd
+d90b57a6b497bb30e2f3db2558798120 *vignettes/genio.Rmd
