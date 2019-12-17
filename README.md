@@ -1,4 +1,4 @@
-# genio
+# genio <img src="man/figures/logo.png" alt="Gen I/O" align="right" />
 
 The `genio` (GENetics I/O) package provides easy-to-use and efficient readers and writers for formats in genetics research.
 Currently targets plink and eigenstrat formats (more to come).

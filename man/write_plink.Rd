@@ -4,8 +4,7 @@
 \alias{write_plink}
 \title{Write genotype and sample data into a plink BED/BIM/FAM file set.}
 \usage{
-write_plink(file, X, bim = NULL, fam = NULL, pheno = NULL,
-  verbose = TRUE)
+write_plink(file, X, bim = NULL, fam = NULL, pheno = NULL, verbose = TRUE)
 }
 \arguments{
 \item{file}{Output file path, without extensions (each of .bed, .bim, .fam extensions will be added automatically as needed).}
@@ -25,6 +24,10 @@ This must be a length-\eqn{n} vector.
 This will be ignored (with a warning) if \code{fam} is provided.}
 
 \item{verbose}{If TRUE (default) function reports the paths of the files being written (after autocompleting the extensions).}
+}
+\value{
+Invisibly, a named list with items in this order: X (genotype matrix), bim (tibble), fam (tibble).
+This is most useful when either BIM or FAM tables were auto-generated.
 }
 \description{
 This function writes a genotype matrix (X) and its associated locus (bim) and individual (fam) data tables into three plink files in BED, BIM, and FAM formats, respectively.

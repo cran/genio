@@ -64,3 +64,19 @@
   * Added `include <cerrno>` to my cpp code.
   * Fixed a "heap buffer overflow" detected by valgrind that only occurred for data with fewer than 9 individuals (included many of my toy tests).
   * Edited a test within vignette to allow for small machine precision-level errors.
+
+# 2019-07-22 - genio 1.0.11
+
+* Added `read_phen` and `write_phen`, a phenotype format (very similar to plink's FAM) used by GCTA and EMMAX.
+* Now `write_plink` returns the data it wrote, invisibly as a list.
+  Most useful for auto-generated data.
+
+# 2019-08-05 - genio 1.0.11.9000
+
+* Fixed a "buffer overflow" bug that occurred when input files started with "~/" on Unix systems.
+
+# 2019-12-17 - genio 1.0.12
+
+* Second CRAN submission
+* Moved logo to `man/figures/`
+* Minor Roxygen-related updates.

@@ -1,10 +1,10 @@
-## ----setup, include = FALSE----------------------------------------------
+## ----setup, include = FALSE---------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
 
-## ---- cache = FALSE, include = FALSE-------------------------------------
+## ---- cache = FALSE, include = FALSE------------------------------------------
 ## copied from examples from the "simmer" R package
 ## after: https://www.enchufa2.es/archives/suggests-and-vignettes.html
 ## by Iñaki Úcar
@@ -13,7 +13,7 @@ required <- c("lfa", "BEDMatrix", "snpStats", "pryr") # first is not a CRAN pack
 if (!all(sapply(required, requireNamespace, quietly = TRUE)))
   knitr::opts_chunk$set(eval = FALSE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Data dimensions.
 # Choose non-multiples of 4 to test edge cases of BED parsers.
 # Number of loci.
@@ -39,10 +39,10 @@ X <- matrix(X, nrow = m_loci, ncol = n_ind)
 # Inspect the first 10 individuals at the first 10 loci
 X[1:10, 1:10]
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 library(genio)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # We have to specify the number of loci
 bim <- make_bim( n = m_loci )
 
@@ -64,7 +64,7 @@ bim$alt <- sample(c('A', 'T'), m_loci, replace = TRUE)
 # Inspect the table with our changes
 bim
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Specify the number of individuals
 fam <- make_fam( n = n_ind )
 
@@ -84,14 +84,14 @@ fam$pheno <- rnorm(n_ind)
 # Inspect again
 fam
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Add column and row names from bim and fam tables we just created.
 rownames(X) <- bim$id
 colnames(X) <- fam$id
 # Inspect again the first 10 individuals and loci
 X[1:10, 1:10]
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Will delete at the end of the vignette
 file_plink <- tempfile('vignette-random-data')
 
@@ -103,7 +103,7 @@ time_write_genio <- system.time(
 )
 time_write_genio
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Read the data back in memory.
 # Time this step
 time_read_genio <- system.time(
@@ -132,7 +132,7 @@ stopifnot( fam[,1:5] == data_genio$fam[,1:5] )
 # Exact equality may fail for pheno due to precisions, so test this way instead:
 stopifnot( max(abs(fam$pheno - data_genio$fam$pheno)) < 1e-4 )
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Constants
 bytes_per_genotype <- 4
 bytes_per_gb <- 1024 ^ 3
@@ -142,7 +142,7 @@ num_loci <- 500000
 # Gigabytes per 1000 individuals for a typical genotyping array
 bytes_per_genotype * num_ind * num_loci / bytes_per_gb
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 library(BEDMatrix)
 # Time it too.
 # Although the BIM and FAM tables are not returned,
@@ -157,7 +157,7 @@ time_read_bedmatrix_1 <- system.time(
 # Also note the column and row names are different from genio's.
 X_BEDMatrix[1:10, 1:10]
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # This turns it into a regular R matrix.
 # Since most of the reading is actually happening now,
 # we time this step now.
@@ -169,7 +169,7 @@ time_read_bedmatrix_2
 # Need to transpose first.
 stopifnot( all( X == t(X_BEDMatrix_Rmat), na.rm = TRUE) )
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 library(snpStats)
 
 # Read data, time it.
@@ -191,7 +191,7 @@ head( data_snpStats$map )
 # Individual annotations
 head (data_snpStats$fam )
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Transpose, then convert to a regular R matrix.
 # Let's time this step too.
 time_read_snpStats_2 <- system.time(
@@ -209,7 +209,7 @@ X_snpStats[1:10, 1:10]
 # (Here 2-X flips back 0s and 2s)
 stopifnot( all( X == 2 - X_snpStats, na.rm = TRUE) )
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Let's write this to another file
 file_plink_copy <- tempfile('vignette-random-data-copy')
 
@@ -260,7 +260,7 @@ time_write_snpStats <- system.time({
 # remove the new file, no longer need it
 delete_files_plink(file_plink_copy)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 library(lfa)
 # Parse the genotype matrix
 time_read_lfa <- system.time(
@@ -274,7 +274,7 @@ X_lfa[1:10, 1:10]
 # Again verify that the matrices are identical
 stopifnot( all( X == X_lfa, na.rm = TRUE) )
 
-## ---- fig.width = 6, fig.height = 4, fig.align = 'center'----------------
+## ---- fig.width = 6, fig.height = 4, fig.align = 'center'---------------------
 # Extract component 3 of each time object,
 # which is is total time elapsed.
 # Sum the two steps it takes for each of BEDMatrix and snpStats to obtain a native R matrix.
@@ -299,7 +299,7 @@ barplot(
     ylab = 'runtime (s)'
 )
 
-## ---- fig.width = 4, fig.height = 4, fig.align = 'center'----------------
+## ---- fig.width = 4, fig.height = 4, fig.align = 'center'---------------------
 times_write <- c(
     time_write_genio[3],
     time_write_snpStats[3]
@@ -317,7 +317,7 @@ barplot(
     ylab = 'runtime (s)'
 )
 
-## ---- fig.width = 6, fig.height = 4, fig.align = 'center'----------------
+## ---- fig.width = 6, fig.height = 4, fig.align = 'center'---------------------
 library(pryr)
 # Store directly into a vector
 sizes <- c(
@@ -343,9 +343,9 @@ barplot(
     ylab = 'memory (bytes)'
 )
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 delete_files_plink(file_plink)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 sessionInfo()
 
