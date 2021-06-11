@@ -8,7 +8,7 @@ knitr::opts_chunk$set(
 ## copied from examples from the "simmer" R package
 ## after: https://www.enchufa2.es/archives/suggests-and-vignettes.html
 ## by Iñaki Úcar
-required <- c("lfa", "BEDMatrix", "snpStats", "pryr") # first is not a CRAN package, only suggested since popkin doesn't need it to run... might as well do the same for other dependencies
+required <- c("BEDMatrix", "snpStats", "pryr")
 
 if (!all(sapply(required, requireNamespace, quietly = TRUE)))
   knitr::opts_chunk$set(eval = FALSE)
@@ -201,7 +201,7 @@ time_read_snpStats_2
 
 # Now we can visualize the matrix.
 # First 10 loci and individuals, as before.
-# Note that, compared to (genio, BEDMatrix, lfa), alleles are encoded in reverse,
+# Note that, compared to (genio, BEDMatrix), alleles are encoded in reverse,
 # so 0s and 2s are flipped in this matrix.
 X_snpStats[1:10, 1:10]
 
@@ -260,20 +260,6 @@ time_write_snpStats <- system.time({
 # remove the new file, no longer need it
 delete_files_plink(file_plink_copy)
 
-## -----------------------------------------------------------------------------
-library(lfa)
-# Parse the genotype matrix
-time_read_lfa <- system.time(
-    X_lfa <- read.bed(file_plink)
-)
-time_read_lfa
-
-# This genotype matrix does not have column or row names:
-X_lfa[1:10, 1:10]
-
-# Again verify that the matrices are identical
-stopifnot( all( X == X_lfa, na.rm = TRUE) )
-
 ## ---- fig.width = 6, fig.height = 4, fig.align = 'center'---------------------
 # Extract component 3 of each time object,
 # which is is total time elapsed.
@@ -281,14 +267,12 @@ stopifnot( all( X == X_lfa, na.rm = TRUE) )
 times_read <- c(
     time_read_genio[3],
     time_read_bedmatrix_1[3] + time_read_bedmatrix_2[3],
-    time_read_snpStats_1[3] + time_read_snpStats_2[3],
-    time_read_lfa[3]
+    time_read_snpStats_1[3] + time_read_snpStats_2[3]
 )
 names_read <- c(
     'genio',
     'BEDMatrix',
-    'snpStats',
-    'lfa'
+    'snpStats'
 )
 # Create barplot
 barplot(
@@ -324,15 +308,13 @@ sizes <- c(
     object_size( X ),
     object_size( data_genio$X ),
     object_size( X_BEDMatrix ),
-    object_size( data_snpStats$genotypes ),
-    object_size( X_lfa )
+    object_size( data_snpStats$genotypes )
 )
 names_sizes <- c(
     'original',
     'genio',
     'BEDMatrix',
-    'snpStats',
-    'lfa'
+    'snpStats'
 )
 # Create barplot
 barplot(

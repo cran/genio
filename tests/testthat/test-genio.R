@@ -1,5 +1,6 @@
 # need to load it explicitly for some tests
 library(tibble)
+library(dplyr)
 
 context("test-genio")
 
@@ -20,6 +21,8 @@ test_that("add_ext works", {
     expect_equal(foExtY, add_ext(foExtN, ext))
     # test that present extension doesn't get added again
     expect_equal(foExtY, add_ext(foExtY, ext))
+    # test that an NA extension doesn't add anything
+    expect_equal(foExtN, add_ext(foExtN, NA))
 })
 
 test_that("real_path works", {
@@ -529,6 +532,51 @@ test_that("write_bim works", {
     expect_error(write_bim(fo, bim1_r))
 })
 
+test_that("write_bim with `append = TRUE` works", {
+    # load sample file
+    fi <- system.file("extdata", 'sample.bim', package = "genio", mustWork = TRUE)
+    # create a dummy output we'll delete later
+    fo <- tempfile('delete-me_test-write', fileext = '.bim')
+    
+    # this should just work (tested earlier)
+    bim1 <- read_bim(fi)
+
+    # here's the awkward part, where we write it back in parts
+    # write every two lines
+    for ( i in 1 : ( nrow( bim1 ) / 2 ) ) {
+        # try writing it back elsewhere
+        write_bim(
+            fo,
+            bim1[ (2*i-1):(2*i), ],
+            append = TRUE
+        )
+    }
+    
+    # and read it back again to comare
+    bim2 <- read_bim(fo)
+    # compare
+    expect_equal(bim1, bim2)
+    # delete output when done
+    invisible(file.remove(fo))
+
+    # repeat writing one line at the time
+    for ( i in 1 : nrow( bim1 ) ) {
+        # try writing it back elsewhere
+        write_bim(
+            fo,
+            bim1[ i, ],
+            append = TRUE
+        )
+    }
+    
+    # and read it back again to comare
+    bim2 <- read_bim(fo)
+    # compare
+    expect_equal(bim1, bim2)
+    # delete output when done
+    invisible(file.remove(fo))
+})
+
 test_that("write_ind works", {
     # test that there are errors when crucial data is missing
     expect_error(write_ind()) # all is missing
@@ -715,11 +763,11 @@ test_that("make_bim works", {
 
 test_that("require_files_plink works", {
     # these should all just work (pass existing files)
-    require_files_plink('dummy-33-101-0.1')
-    require_files_plink('dummy-4-10-0.1')
-    require_files_plink('dummy-5-10-0.1')
-    require_files_plink('dummy-6-10-0.1')
-    require_files_plink('dummy-7-10-0.1')
+    expect_silent( require_files_plink('dummy-33-101-0.1') )
+    expect_silent( require_files_plink('dummy-4-10-0.1') )
+    expect_silent( require_files_plink('dummy-5-10-0.1') )
+    expect_silent( require_files_plink('dummy-6-10-0.1') )
+    expect_silent( require_files_plink('dummy-7-10-0.1') )
     # try something that doesn't exist, expect to fail
     expect_error( require_files_plink('file-that-does-not-exist') )
 })
@@ -739,6 +787,38 @@ test_that("delete_files_plink works", {
     # negative control
     # there will be warnings for files that didn't exist
     expect_warning( delete_files_plink('file-that-does-not-exist') )
+})
+
+test_that("delete_files_phen works", {
+    # positive control
+    # create dummy PHEN files
+    file <- 'delete-me-test' # no extension
+    # add each extension and create empty files
+    file.create( paste0(file, '.phen') )
+    
+    # delete the PHEN file we just created
+    expect_silent( delete_files_phen(file) )
+
+    # negative control
+    # there will be warnings for files that didn't exist
+    expect_warning( delete_files_phen('file-that-does-not-exist') )
+})
+
+test_that("require_files_plink works", {
+    # positive control
+    # create dummy PHEN files
+    file <- 'delete-me-test' # no extension
+    # add each extension and create empty files
+    file.create( paste0(file, '.phen') )
+    
+    # this should work (pass existing files)
+    expect_silent( require_files_phen( file ) )
+    # delete the PHEN file we just created
+    expect_silent( delete_files_phen(file) )
+    
+    # negative control
+    # try something that doesn't exist, expect to fail
+    expect_error( require_files_phen('file-that-does-not-exist') )
 })
 
 test_that("sex_to_int works", {
@@ -830,4 +910,417 @@ test_that("ind_to_fam works", {
     expect_true( all(fam$pat == 0) )
     expect_true( all(fam$mat == 0) )
     expect_true( all(fam$pheno == 0) )
+})
+
+test_that("tidy_kinship works", {
+    # create a toy kinship example
+    n <- 3
+    kinship <- matrix(
+        c(
+            0.5, 0.1, 0.0,
+            0.1, 0.6, 0.2,
+            0.0, 0.2, 0.7
+        ),
+        nrow = n
+    )
+    # add names (best for tidy version)
+    colnames(kinship) <- paste0('pop', 1:n)
+    rownames(kinship) <- paste0('pop', 1:n)
+    
+    # this returns tidy version
+    kinship_tidy <- tidy_kinship( kinship )
+    # test colnames
+    expect_equal(
+        colnames( kinship_tidy ),
+        c('id1', 'id2', 'kinship')
+    )
+    # test row number
+    expect_equal(
+        nrow( kinship_tidy ),
+        n * ( n + 1 ) / 2
+    )
+    # construct exact expectation here
+    kinship_tidy_expect <- tibble(
+        id1 = paste0('pop', c(1, 1, 2, 1:3)),
+        id2 = paste0('pop', c(3, 2, 3, 1:3)),
+        kinship = c(0, 0.1, 0.2, 0.5, 0.6, 0.7)
+    )
+    expect_equal(
+        kinship_tidy_expect,
+        kinship_tidy
+    )
+    
+    # now test unsorted version
+    kinship_tidy <- tidy_kinship( kinship, sort = FALSE )
+    # test colnames
+    expect_equal(
+        colnames( kinship_tidy ),
+        c('id1', 'id2', 'kinship')
+    )
+    # test row number
+    expect_equal(
+        nrow( kinship_tidy ),
+        n * ( n + 1 ) / 2
+    )
+    # construct exact expectation here
+    kinship_tidy_expect <- tibble(
+        id1 = paste0('pop', c(1, 1, 1, 2, 2, 3)),
+        id2 = paste0('pop', c(1, 2, 3, 2, 3, 3)),
+        kinship = c(0.5, 0.1, 0, 0.6, 0.2, 0.7)
+    )
+    expect_equal(
+        kinship_tidy_expect,
+        kinship_tidy
+    )
+
+    # test with sorting but without names
+    colnames(kinship) <- NULL
+    rownames(kinship) <- NULL
+    # this must throw a warning
+    expect_warning(
+        kinship_tidy <- tidy_kinship( kinship )
+    )
+    # test colnames
+    expect_equal(
+        colnames( kinship_tidy ),
+        c('id1', 'id2', 'kinship')
+    )
+    # test row number
+    expect_equal(
+        nrow( kinship_tidy ),
+        n * ( n + 1 ) / 2
+    )
+    # construct exact expectation here
+    kinship_tidy_expect <- tibble(
+        id1 = as.character( c(1, 1, 2, 1:3) ),
+        id2 = as.character( c(3, 2, 3, 1:3) ),
+        kinship = c(0, 0.1, 0.2, 0.5, 0.6, 0.7)
+    )
+    expect_equal(
+        kinship_tidy_expect,
+        kinship_tidy
+    )
+})
+
+test_that("read_eigenvec works", {
+    # test that errors occur when key data is missing
+    expect_error( read_eigenvec() ) # only file is required
+    expect_error( read_eigenvec( 'bogus-file' ) ) # file is non-existent (read_table2 will complain)
+
+    # actual number of eigenvectors in sample file
+    r <- 3
+    
+    # load sample file
+    fi <- system.file("extdata", 'sample-gcta.eigenvec', package = "genio", mustWork = TRUE)
+    expect_silent(
+        data <- read_eigenvec( fi, verbose = FALSE )
+    )
+    expect_true( is.list(data) )
+    expect_equal( length( data ), 2 )
+    expect_equal( names( data ), c('eigenvec', 'fam') )
+    expect_true( is.matrix( data$eigenvec ) )
+    expect_true( is.numeric( data$eigenvec ) )
+    expect_equal( nrow( data$eigenvec ), n_rows )
+    expect_equal( ncol( data$eigenvec ), r )
+    expect_true( is_tibble( data$fam ) )
+    expect_equal( nrow( data$fam ), n_rows )
+    expect_equal( ncol( data$fam ), 2 )
+    expect_equal( colnames( data$fam ), c('fam', 'id') )
+
+    # repeat with plink2-formatted sample file (has a header that should simply be ignored)
+    fi <- system.file("extdata", 'sample-plink2.eigenvec', package = "genio", mustWork = TRUE)
+    expect_silent(
+        data <- read_eigenvec( fi, verbose = FALSE )
+    )
+    expect_true( is.list(data) )
+    expect_equal( length( data ), 2 )
+    expect_equal( names( data ), c('eigenvec', 'fam') )
+    expect_true( is.matrix( data$eigenvec ) )
+    expect_true( is.numeric( data$eigenvec ) )
+    expect_equal( nrow( data$eigenvec ), n_rows )
+    expect_equal( ncol( data$eigenvec ), r )
+    expect_true( is_tibble( data$fam ) )
+    expect_equal( nrow( data$fam ), n_rows )
+    expect_equal( ncol( data$fam ), 2 )
+    expect_equal( colnames( data$fam ), c('fam', 'id') )
+})
+
+
+test_that("write_eigenvec works", {
+    # test that there are errors when crucial data is missing
+    expect_error( write_eigenvec() ) # all is missing
+    expect_error( write_eigenvec( 'file' ) ) # eigenvec is missing
+    expect_error( write_eigenvec( eigenvec = matrix(0) ) ) # file is missing (tib is incomplete too, but that gets tested downstream)
+
+    # create small but realistic eigenvec matrix
+    # number of individuals
+    n <- 10
+    # number of desired PCs
+    r <- 3
+    # number of SNPs
+    m <- 100
+    # allele frequency (boring, right in the middle)
+    p <- 0.5
+    # random genotypes
+    X <- matrix(
+        rbinom( n*m, 2, p ),
+        nrow = m,
+        ncol = n
+    )
+    # center and scale (with true ancestral allele freq)
+    X <- ( X - 2 * p ) / sqrt( 4 * p * ( 1 - p ) )
+    # kinship matrix
+    kinship <- crossprod( X )
+    # now get eigenvectors
+    # NOTE: eigen doesn't give colnames to this matrix!
+    eigenvec <- eigen( kinship )$vectors
+    # subset to top eigenvectors (columns)
+    eigenvec <- eigenvec[ , 1:r ]
+    # accompanying dummy fam file
+    # entries as character for reader/writer comparisons
+    fam <- tibble(
+        fam = as.character( 1:n ),
+        id = as.character( 1:n )
+    )
+    # expected output in this extra simple case
+    eigenvec_with_names <- eigenvec
+    colnames( eigenvec_with_names ) <- 1:r
+    eigenvec_final_expected <- bind_cols( fam, as_tibble( eigenvec_with_names ) )
+    
+    # create a dummy output we'll delete later
+    # file base (no extension)
+    name <- tempfile( 'delete-me_test-write' )
+    # full file path (for manually deleting)
+    fo <- paste0( name, '.eigenvec' )
+    # write file, producing "final" table of interest
+    expect_silent(
+        eigenvec_final <- write_eigenvec( name, eigenvec, fam = fam, verbose = FALSE )
+    )
+    # compare
+    expect_equal( eigenvec_final, eigenvec_final_expected )
+    # now parse it with our read_eigenvec, this should also agree!
+    data <- read_eigenvec( name, verbose = FALSE )
+    expect_equal( data$eigenvec, eigenvec_with_names )
+    expect_equal( data$fam, fam )
+    # delete output when done
+    invisible( file.remove(fo) )
+    
+    # repeat by reordering fam data, should automatically reorder too
+    fam_r <- fam[ , 2:1 ]
+    expect_silent(
+        eigenvec_final <- write_eigenvec( name, eigenvec, fam = fam_r, verbose = FALSE )
+    )
+    # compare
+    expect_equal( eigenvec_final, eigenvec_final_expected )
+    # delete output when done
+    invisible( file.remove(fo) )
+    
+    # repeat by adding junk columns, should be automatically ignored
+    fam_r <- fam # copy first
+    fam_r$junk <- 1 # add a junk column
+    expect_silent(
+        eigenvec_final <- write_eigenvec( name, eigenvec, fam = fam_r, verbose = FALSE )
+    )
+    # compare
+    expect_equal( eigenvec_final, eigenvec_final_expected )
+    # delete output when done
+    invisible( file.remove(fo) )
+
+    # other expected errors
+    
+    # delete a column, test that an error is thrown
+    fam_r <- fam # copy first
+    fam_r$id <- NULL # delete this column
+    expect_error(
+        write_eigenvec( name, eigenvec, fam = fam_r, verbose = FALSE )
+    )
+
+    # since eigenvec doesn't have fam/id columns, this errors (fam omitted)
+    expect_error(
+        write_eigenvec( name, eigenvec, verbose = FALSE )
+    )
+    # but including the "final" eigenvec as input should work
+    expect_silent(
+        eigenvec_final <- write_eigenvec( name, eigenvec_final_expected, verbose = FALSE )
+    )
+    # compare
+    expect_equal( eigenvec_final, eigenvec_final_expected )
+    # delete output when done
+    invisible( file.remove(fo) )
+
+    # since the final version and fam overlap in fam/id columns, this succeeds but with a warning
+    expect_warning(
+        eigenvec_final <- write_eigenvec( name, eigenvec_final_expected, fam = fam, verbose = FALSE )
+    )
+    # compare
+    expect_equal( eigenvec_final, eigenvec_final_expected )
+    # delete output when done
+    invisible( file.remove(fo) )
+
+    # error when number of individuals doesn't match between eigenvec and fam
+    expect_error(
+        write_eigenvec( name, eigenvec, fam = fam[ -1, ], verbose = FALSE )
+    )
+    expect_error(
+        write_eigenvec( name, eigenvec[ -1, ], fam = fam, verbose = FALSE )
+    )
+})
+
+test_that("count_lines works", {
+    # test that there are errors when crucial data is missing
+    expect_error( count_lines() ) # file is missing
+    expect_error( count_lines( 'bogus-file' ) ) # file is non-existent
+    
+    # load sample file
+    fi <- system.file("extdata", 'sample.fam', package = "genio", mustWork = TRUE)
+    # count lines!
+    expect_silent(
+        n_ind_lines <- count_lines( fi, verbose = FALSE )
+    )
+    expect_equal( n_ind_lines, n_rows )
+    expect_true( is.integer( n_ind_lines ) )
+    
+    # repeat with missing extension
+    fi_no_ext <- sub('\\.fam$', '', fi)
+    # if we don't add extension back, it should fail (file does not exist)
+    expect_error(
+        count_lines( fi_no_ext )
+    )
+    # count lines!
+    expect_silent(
+        n_ind_lines <- count_lines( fi_no_ext, ext = 'fam', verbose = FALSE )
+    )
+    expect_equal( n_ind_lines, n_rows )
+    expect_true( is.integer( n_ind_lines ) )
+
+    # test on a file with a single line but missing its newline (a potential trouble case for C++ iterators solution)
+    fi <- 'no-newline.txt'
+    # count lines!
+    expect_silent(
+        n_lines <- count_lines( fi, verbose = FALSE )
+    )
+    expect_equal( n_lines, 1 )
+    expect_true( is.integer( n_lines ) )
+})
+
+test_that("read_matrix works", {
+    # test that there are errors when crucial data is missing
+    expect_error(read_matrix()) # file is missing
+    expect_error(read_matrix('bogus-file')) # file is non-existent (read_table2 will complain)
+    
+    # load sample file
+    fi <- system.file("extdata", 'sample-Q3.txt', package = "genio", mustWork = TRUE)
+    # main test
+    expect_silent(
+        mat <- read_matrix( fi, verbose = FALSE )
+    )
+    # basic validations
+    expect_true( is.matrix( mat ) )
+    expect_true( is.numeric( mat ) )
+    # dimensions known ahead of time
+    expect_equal( nrow( mat ), 10 )
+    expect_equal( ncol( mat ), 3 )
+    # this happens to be an admixture file, so rows sum to 1
+    u <- rep.int( 1, 10 )
+    expect_equal( rowSums( mat ), u )
+    # demand no dimnames (file contains no such data, anything present must be junk)
+    expect_null( dimnames( mat ) )
+
+    # repeat with missing extension
+    fiNoExt <- sub('\\.txt$', '', fi)
+    expect_silent(
+        mat <- read_matrix( fiNoExt, verbose = FALSE )
+    )
+    expect_true( is.matrix( mat ) )
+    expect_true( is.numeric( mat ) )
+    expect_equal( nrow( mat ), 10 )
+    expect_equal( ncol( mat ), 3 )
+    expect_equal( rowSums( mat ), u )
+    expect_null( dimnames( mat ) )
+
+    # repeat with compressed file (and true full path)
+    fi <- system.file("extdata", 'sample-Q3.txt.gz', package = "genio", mustWork = TRUE)
+    expect_silent(
+        mat <- read_matrix( fi, verbose = FALSE )
+    )
+    expect_true( is.matrix( mat ) )
+    expect_true( is.numeric( mat ) )
+    expect_equal( nrow( mat ), 10 )
+    expect_equal( ncol( mat ), 3 )
+    expect_equal( rowSums( mat ), u )
+    expect_null( dimnames( mat ) )
+    
+    # repeat with missing .gz extension
+    fiNoGz <- sub('\\.gz$', '', fi)
+    expect_silent(
+        mat <- read_matrix( fiNoGz, verbose = FALSE )
+    )
+    expect_true( is.matrix( mat ) )
+    expect_true( is.numeric( mat ) )
+    expect_equal( nrow( mat ), 10 )
+    expect_equal( ncol( mat ), 3 )
+    expect_equal( rowSums( mat ), u )
+    expect_null( dimnames( mat ) )
+
+    # repeat with missing .txt.gz double extension
+    fiNoGzNoExt <- sub('\\.txt$', '', fiNoGz)
+    expect_silent(
+        mat <- read_matrix( fiNoGzNoExt, verbose = FALSE )
+    )
+    expect_true( is.matrix( mat ) )
+    expect_true( is.numeric( mat ) )
+    expect_equal( nrow( mat ), 10 )
+    expect_equal( ncol( mat ), 3 )
+    expect_equal( rowSums( mat ), u )
+    expect_null( dimnames( mat ) )
+})
+
+test_that("write_matrix works", {
+    # test that there are errors when crucial data is missing
+    expect_error( write_matrix( ) ) # all is missing
+    expect_error( write_matrix( 'file' ) ) # tibble is missing
+    expect_error( write_matrix( x = cbind( 1 ) ) ) # file is missing
+
+    # create a small matrix to write
+    # square matrix in this case
+    x <- matrix(
+        rnorm( n_rows^2 ),
+        nrow = n_rows,
+        ncol = n_rows
+    )
+    
+    # create a dummy output we'll delete later
+    fo <- tempfile('delete-me_test-write', fileext = '.txt')
+    # write data
+    expect_silent(
+        write_matrix( fo, x, verbose = FALSE )
+    )
+    # read it back
+    expect_silent(
+        x2 <- read_matrix( fo, verbose = FALSE )
+    )
+    # should be the same!
+    expect_equal( x, x2 )
+    # delete output when done
+    invisible( file.remove( fo ) )
+
+    # test append feature!
+    # write first half now
+    expect_silent(
+        write_matrix( fo, x[ 1:5, ], verbose = FALSE )
+    )
+    # write second half, appending!
+    expect_silent(
+        write_matrix( fo, x[ 6:n_rows, ], append = TRUE, verbose = FALSE )
+    )
+    # read it all back
+    expect_silent(
+        x2 <- read_matrix( fo, verbose = FALSE )
+    )
+    # should be the same!
+    expect_equal( x, x2 )
+    # delete output when done
+    invisible( file.remove( fo ) )
+    
+    
 })

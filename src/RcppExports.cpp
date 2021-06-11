@@ -5,6 +5,17 @@
 
 using namespace Rcpp;
 
+// count_lines_cpp
+size_t count_lines_cpp(const char* filepath);
+RcppExport SEXP _genio_count_lines_cpp(SEXP filepathSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const char* >::type filepath(filepathSEXP);
+    rcpp_result_gen = Rcpp::wrap(count_lines_cpp(filepath));
+    return rcpp_result_gen;
+END_RCPP
+}
 // read_bed_cpp
 IntegerMatrix read_bed_cpp(const char* file, int m_loci, int n_ind);
 RcppExport SEXP _genio_read_bed_cpp(SEXP fileSEXP, SEXP m_lociSEXP, SEXP n_indSEXP) {
@@ -19,20 +30,22 @@ BEGIN_RCPP
 END_RCPP
 }
 // write_bed_cpp
-void write_bed_cpp(const char* file, IntegerMatrix X);
-RcppExport SEXP _genio_write_bed_cpp(SEXP fileSEXP, SEXP XSEXP) {
+void write_bed_cpp(const char* file, IntegerMatrix X, bool append);
+RcppExport SEXP _genio_write_bed_cpp(SEXP fileSEXP, SEXP XSEXP, SEXP appendSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const char* >::type file(fileSEXP);
     Rcpp::traits::input_parameter< IntegerMatrix >::type X(XSEXP);
-    write_bed_cpp(file, X);
+    Rcpp::traits::input_parameter< bool >::type append(appendSEXP);
+    write_bed_cpp(file, X, append);
     return R_NilValue;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_genio_count_lines_cpp", (DL_FUNC) &_genio_count_lines_cpp, 1},
     {"_genio_read_bed_cpp", (DL_FUNC) &_genio_read_bed_cpp, 3},
-    {"_genio_write_bed_cpp", (DL_FUNC) &_genio_write_bed_cpp, 2},
+    {"_genio_write_bed_cpp", (DL_FUNC) &_genio_write_bed_cpp, 3},
     {NULL, NULL, 0}
 };
 

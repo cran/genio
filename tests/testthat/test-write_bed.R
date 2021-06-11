@@ -54,6 +54,10 @@ test_that("write_bed and read_bed work", {
     expect_error( read_bed(fo, m_loci = m-1, n_ind = n) )
     expect_error( read_bed(fo, m_loci = m,   n_ind = n-1) )
     expect_error( read_bed(fo, m_loci = m,   n_ind = n+4) ) # have to be off by a whole byte to notice some of these errors
+    # file path that doesn't exist
+    expect_error( read_bed( 'doesnt-exist', m_loci = m, n_ind = n ) )
+    # very long non-existent file path
+    expect_error( read_bed( '/made/up/long/path/doesnt-exist_doesnt-exist_doesnt-exist_doesnt-exist_doesnt-exist', m_loci = m, n_ind = n ) )
     
     # delete output when done
     invisible(file.remove(fo_bed))
@@ -80,6 +84,44 @@ test_that("write_bed and read_bed work", {
     expect_false( file.exists(fo_bed) )
 
     # NOTE: if X contains values that truncate to the correct range (say, 1.5, which becomes 1 upon truncation), then that's what Rcpp does internally and no errors are raised!
+})
+
+test_that("write_bed with `append = TRUE` works", {
+
+    # here's the awkward part, where we write it back in parts
+    # write every two lines
+    for ( i in 1 : ( nrow( X ) / 2 ) ) {
+        # try writing it back elsewhere
+        write_bed(
+            fo,
+            X[ (2*i-1):(2*i), ],
+            append = TRUE
+        )
+    }
+    
+    # read tests
+    # parse data back, verify agreement!
+    X2 <- read_bed(fo, m_loci = m, n_ind = n)
+    expect_equal(X, X2)
+    # delete output when done
+    invisible(file.remove(fo_bed))
+
+    # repeat writing one line at the time
+    for ( i in 1 : nrow( X ) ) {
+        # try writing it back elsewhere
+        write_bed(
+            fo,
+            X[ i, , drop = FALSE ],
+            append = TRUE
+        )
+    }
+    
+    # read tests
+    # parse data back, verify agreement!
+    X2 <- read_bed(fo, m_loci = m, n_ind = n)
+    expect_equal(X, X2)
+    # delete output when done
+    invisible(file.remove(fo_bed))
 })
 
 # let's include BEDMatrix in tests, if it's available
@@ -215,5 +257,136 @@ test_that("write_plink works", {
     # delete all three outputs when done
     # this also tests that all three files existed!
     expect_silent( delete_files_plink(fo) )
+})
+
+test_that("write_plink with `append = TRUE` works", {
+    # for this test, we need an original BIM table to compare to
+    bim <- make_bim( n = m )
+    # need to change some modes for the purpose of the test only
+    bim$chr <- as.character( bim$chr )
+    bim$id <- as.character( bim$id )
+    bim$ref <- as.character( bim$ref )
+    bim$alt <- as.character( bim$alt )
+    
+    # here's the awkward part, where we write it back in parts
+    # write every two lines
+    for ( i in 1 : ( nrow( X ) / 2 ) ) {
+        indexes <- (2*i-1):(2*i)
+        # try writing it back elsewhere
+        write_plink(
+            fo,
+            X = X[ indexes, ],
+            bim = bim[ indexes, ],
+            append = TRUE
+        )
+    }
+    
+    # read tests
+    # parse data back, verify agreement!
+    obj2 <- read_plink(fo)
+    expect_equal( X_named, obj2$X ) # need named version for this test
+    expect_equal( bim, obj2$bim[] ) # need [] to change stupid readr class, for testing only
+    # delete all three outputs when done
+    # this also tests that all three files existed!
+    expect_silent( delete_files_plink(fo) )
+    
+    # repeat writing one line at the time
+    for ( i in 1 : nrow( X ) ) {
+        # try writing it back elsewhere
+        write_plink(
+            fo,
+            X = X[ i, , drop = FALSE ],
+            bim = bim[ i, ],
+            append = TRUE
+        )
+    }
+    
+    # read tests
+    # parse data back, verify agreement!
+    obj2 <- read_plink(fo)
+    expect_equal( X_named, obj2$X ) # need named version for this test
+    expect_equal( bim, obj2$bim[] ) # need [] to change stupid readr class, for testing only
+    # delete all three outputs when done
+    # this also tests that all three files existed!
+    expect_silent( delete_files_plink(fo) )
+})
+
+test_that( "geno_to_char works", {
+    # use data where plink1 told us what the answer was
+    name <- 'dummy-4-10-0.1'
+    data <- read_plink( name )
+    X <- data$X
+    bim <- data$bim
+    m <- nrow( X )
+    n <- ncol( X )
+    
+    # need to primitively parse corresponding ped output
+    # (sorry this is tedious)
+    name_ped <- paste0( name, '.ped' )
+    Y_exp <- readr::read_table( name_ped, col_names = FALSE )
+    # remove FAM columns (first 6)
+    # also transpose
+    Y_exp <- t( Y_exp[ , -(1:6) ] )
+    # and collapse the way we have it
+    for ( i in 1 : m ) {
+        # indexes on Y matrix
+        # first row
+        j <- 2 * i - 1
+        # get two rows at the time
+        # store back in final row
+        Y_exp[ i, ] <- paste0( Y_exp[ j, ], '/', Y_exp[ j + 1, ] )
+    }
+    # shrink matrix now
+    Y_exp <- Y_exp[ 1:m , ]
+    # cases are coded as 0/0 are NA, replace now:
+    Y_exp[ Y_exp == '0/0' ] <- NA
+    # copy correct names (missing in this data)
+    dimnames( Y_exp ) <- dimnames( X )
+    # for simplicity, flip heterozygotes so they're all A/B instead of some being B/A
+    Y_exp[ Y_exp == 'B/A' ] <- 'A/B'
+
+    # START TESTING!
+
+    # errors due to missing required arguments
+    expect_error( geno_to_char( X = X ) )
+    expect_error( geno_to_char( bim = bim ) )
+    # disagreeing dimensions
+    expect_error( geno_to_char( X, bim[ -1, ] ) )
+    # slashes in allele names
+    bim_bad <- bim
+    i <- sample( m, 1 )
+    bim_bad$ref[ i ] <- 'a/b'
+    expect_error( geno_to_char( X, bim_bad ) )
+    bim_bad <- bim
+    i <- sample( m, 1 )
+    bim_bad$alt[ i ] <- 'a/b'
+    expect_error( geno_to_char( X, bim_bad ) )
+    # same ref/alt at a locus
+    bim_bad <- bim
+    i <- sample( m, 1 )
+    bim_bad$alt[ i ] <- bim_bad$ref[ i ]
+    expect_error( geno_to_char( X, bim_bad ) )
+    # invalid values in X
+    X_bad <- X
+    i <- sample( m*n, 1 )
+    X_bad[ i ] <- -1
+    expect_error( geno_to_char( X_bad, bim ) )
+    X_bad <- X
+    i <- sample( m*n, 1 )
+    X_bad[ i ] <- 0.5
+    expect_error( geno_to_char( X_bad, bim ) )
+    X_bad <- X
+    i <- sample( m*n, 1 )
+    X_bad[ i ] <- 3
+    expect_error( geno_to_char( X_bad, bim ) )
+    
+    # now a succesful run
+    expect_silent(
+        Y_obs <- geno_to_char(X, bim)
+    )
+    # allele order doesn't matter, so normalize it here as we did with the expected matrix
+    Y_obs[ Y_obs == 'B/A' ] <- 'A/B'
+    # make sure we recovered the desired data!
+    expect_equal( Y_obs, Y_exp )
 })
 
