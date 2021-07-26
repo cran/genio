@@ -37,12 +37,30 @@ test_that("write_bed and read_bed work", {
     expect_error(write_bed('file', 'not-matrix'))
     
     # this should work
-    write_bed(fo, X)
+    expect_silent(
+        write_bed(fo, X, verbose = FALSE)
+    )
 
     # read tests
     # parse data back, verify agreement!
-    X2 <- read_bed(fo, m_loci = m, n_ind = n)
+    expect_silent(
+        X2 <- read_bed(fo, m_loci = m, n_ind = n, verbose = FALSE)
+    )
     expect_equal(X, X2)
+    
+    # test that we can read same file when extension is not BED
+    fo_not_bed <- add_ext(fo, 'not') # output with wrong extension
+    file.copy( fo_bed, fo_not_bed )
+    expect_silent(
+        X3 <- read_bed(fo_not_bed, m_loci = m, n_ind = n, verbose = FALSE)
+    )
+    expect_equal(X, X3)
+    # cleanup
+    rm( X3 )
+    invisible( file.remove( fo_not_bed ) )
+    if ( file.exists( fo_not_bed ) )
+        stop( 'Could not delete: ', fo_not_bed )
+    
     # errors for missing params
     expect_error( read_bed() ) # missing all
     expect_error( read_bed(m_loci = m, n_ind = n) ) # missing file
@@ -92,16 +110,21 @@ test_that("write_bed with `append = TRUE` works", {
     # write every two lines
     for ( i in 1 : ( nrow( X ) / 2 ) ) {
         # try writing it back elsewhere
-        write_bed(
-            fo,
-            X[ (2*i-1):(2*i), ],
-            append = TRUE
+        expect_silent(
+            write_bed(
+                fo,
+                X[ (2*i-1):(2*i), ],
+                append = TRUE,
+                verbose = FALSE
+            )
         )
     }
     
     # read tests
     # parse data back, verify agreement!
-    X2 <- read_bed(fo, m_loci = m, n_ind = n)
+    expect_silent(
+        X2 <- read_bed(fo, m_loci = m, n_ind = n, verbose = FALSE)
+    )
     expect_equal(X, X2)
     # delete output when done
     invisible(file.remove(fo_bed))
@@ -109,16 +132,21 @@ test_that("write_bed with `append = TRUE` works", {
     # repeat writing one line at the time
     for ( i in 1 : nrow( X ) ) {
         # try writing it back elsewhere
-        write_bed(
-            fo,
-            X[ i, , drop = FALSE ],
-            append = TRUE
+        expect_silent(
+            write_bed(
+                fo,
+                X[ i, , drop = FALSE ],
+                append = TRUE,
+                verbose = FALSE
+            )
         )
     }
     
     # read tests
     # parse data back, verify agreement!
-    X2 <- read_bed(fo, m_loci = m, n_ind = n)
+    expect_silent(
+        X2 <- read_bed(fo, m_loci = m, n_ind = n, verbose = FALSE)
+    )
     expect_equal(X, X2)
     # delete output when done
     invisible(file.remove(fo_bed))
@@ -153,7 +181,9 @@ if (suppressMessages(suppressWarnings(require(BEDMatrix)))) {
 # generic testing function
 testOneInput <- function(nameIn, m_loci, n_ind) {
     # load using my code
-    X <- read_bed(nameIn, m_loci = m_loci, n_ind = n_ind) # hack use dimensions from the X read by BEDMatrix
+    expect_silent(
+        X <- read_bed(nameIn, m_loci = m_loci, n_ind = n_ind, verbose = FALSE) # hack use dimensions from the X read by BEDMatrix
+    )
 
     if (test_BEDMatrix) {
         # load dummy file
@@ -167,14 +197,17 @@ testOneInput <- function(nameIn, m_loci, n_ind) {
     expect_error( read_bed(nameIn, m_loci = n_ind,   n_ind = m_loci) ) # reverse dimensions, get caught because of padding checks (non-commutative unless both are factors of 4)
     expect_error( read_bed(nameIn, m_loci = m_loci+1, n_ind = n_ind) )
     expect_error( read_bed(nameIn, m_loci = m_loci-1, n_ind = n_ind) )
-    expect_error( read_bed(nameIn, m_loci = m_loci,   n_ind = n_ind-1) )
+    # NOTE: this used to cause an error when we required that paddings be zero, but now, given some real files (in the wild) with non-zero pads, and seeing that other software just ignores the pads, decided to ignore them too (now these don't trigger errors)
+    #expect_error( read_bed(nameIn, m_loci = m_loci,   n_ind = n_ind-1) )
     # sadly many +1 individual cases don't cause error because they just look like zeroes (in all loci) if there is enough padding.
     # do expect an error if we're off by a whole byte (4 individuals)
     expect_error( read_bed(nameIn, m_loci = m_loci,   n_ind = n_ind+4) )
     
     # write second version (BED only)
     nameOut <- tempfile( paste0(nameIn, '_rewrite') )
-    write_bed(nameOut, X)
+    expect_silent(
+        write_bed(nameOut, X, verbose = FALSE)
+    )
     
     # compare outputs, they should be identical!
     # this is less than ideal, but at least it's a pure R solution (not depending on linux 'cmp' or 'diff')
@@ -212,10 +245,14 @@ test_that("write_plink works", {
     fo <- tempfile('test-write-plink-1')
 
     # this autocompletes bim and fam!
-    write_plink(fo, X)
+    expect_silent(
+        write_plink(fo, X, verbose = FALSE)
+    )
     # make sure we can read outputs!
     # read with my new function
-    data <- read_plink(fo)
+    expect_silent(
+        data <- read_plink(fo, verbose = FALSE)
+    )
     # compare again (must compare named version for success)
     expect_equal(X_named, data$X)
     # compare row and column names internally
@@ -229,13 +266,19 @@ test_that("write_plink works", {
     fo <- tempfile('test-write-plink-2')
 
     # this autocompletes bim and fam except for pheno
-    write_plink(fo, X, pheno = pheno)
+    expect_silent(
+        write_plink(fo, X, pheno = pheno, verbose = FALSE)
+    )
     # in this case parse fam and make sure we recover pheno!
-    fam <- read_fam(fo)
+    expect_silent(
+        fam <- read_fam(fo, verbose = FALSE)
+    )
     # compare!
     expect_equal(fam$pheno, pheno)
     # read with my new function
-    data <- read_plink(fo)
+    expect_silent(
+        data <- read_plink(fo, verbose = FALSE)
+    )
     # compare again (must compare named version for success)
     expect_equal(X_named, data$X)
     # compare row and column names internally
@@ -252,7 +295,9 @@ test_that("write_plink works", {
     fam <- make_fam(n = n)
     expect_warning( write_plink(fo, X, fam = fam, pheno = pheno) )
     # parse fam and make sure pheno was missing
-    fam <- read_fam(fo)
+    expect_silent(
+        fam <- read_fam(fo, verbose = FALSE)
+    )
     expect_equal(fam$pheno, rep.int(0, n))
     # delete all three outputs when done
     # this also tests that all three files existed!
@@ -273,17 +318,22 @@ test_that("write_plink with `append = TRUE` works", {
     for ( i in 1 : ( nrow( X ) / 2 ) ) {
         indexes <- (2*i-1):(2*i)
         # try writing it back elsewhere
-        write_plink(
-            fo,
-            X = X[ indexes, ],
-            bim = bim[ indexes, ],
-            append = TRUE
+        expect_silent(
+            write_plink(
+                fo,
+                X = X[ indexes, ],
+                bim = bim[ indexes, ],
+                append = TRUE,
+                verbose = FALSE
+            )
         )
     }
     
     # read tests
     # parse data back, verify agreement!
-    obj2 <- read_plink(fo)
+    expect_silent(
+        obj2 <- read_plink(fo, verbose = FALSE)
+    )
     expect_equal( X_named, obj2$X ) # need named version for this test
     expect_equal( bim, obj2$bim[] ) # need [] to change stupid readr class, for testing only
     # delete all three outputs when done
@@ -293,17 +343,22 @@ test_that("write_plink with `append = TRUE` works", {
     # repeat writing one line at the time
     for ( i in 1 : nrow( X ) ) {
         # try writing it back elsewhere
-        write_plink(
-            fo,
-            X = X[ i, , drop = FALSE ],
-            bim = bim[ i, ],
-            append = TRUE
+        expect_silent(
+            write_plink(
+                fo,
+                X = X[ i, , drop = FALSE ],
+                bim = bim[ i, ],
+                append = TRUE,
+                verbose = FALSE
+            )
         )
     }
     
     # read tests
     # parse data back, verify agreement!
-    obj2 <- read_plink(fo)
+    expect_silent(
+        obj2 <- read_plink(fo, verbose = FALSE)
+    )
     expect_equal( X_named, obj2$X ) # need named version for this test
     expect_equal( bim, obj2$bim[] ) # need [] to change stupid readr class, for testing only
     # delete all three outputs when done
@@ -311,10 +366,29 @@ test_that("write_plink with `append = TRUE` works", {
     expect_silent( delete_files_plink(fo) )
 })
 
+# this is a case reported by richelbilderbeek
+test_that( "read_plink works with file without zero pads", {
+    name <- 'HumanOrigins249_tiny'
+    expect_silent(
+        data <- read_plink( name, verbose = FALSE )
+    )
+    if (test_BEDMatrix) {
+        # load using BEDMatrix
+        X2 <- read_bed_hack( name )
+        # for comparison, clean up genio version (read_plink returns row/col names)
+        X <- data$X
+        dimnames(X) <- NULL
+        # compare now
+        expect_equal( X, X2 )
+    }
+})
+
 test_that( "geno_to_char works", {
     # use data where plink1 told us what the answer was
     name <- 'dummy-4-10-0.1'
-    data <- read_plink( name )
+    expect_silent(
+        data <- read_plink( name, verbose = FALSE )
+    )
     X <- data$X
     bim <- data$bim
     m <- nrow( X )

@@ -302,13 +302,13 @@ barplot(
 )
 
 ## ---- fig.width = 6, fig.height = 4, fig.align = 'center'---------------------
-library(pryr)
+library(lobstr)
 # Store directly into a vector
 sizes <- c(
-    object_size( X ),
-    object_size( data_genio$X ),
-    object_size( X_BEDMatrix ),
-    object_size( data_snpStats$genotypes )
+    obj_size( X ),
+    obj_size( data_genio$X ),
+    obj_size( X_BEDMatrix ),
+    obj_size( data_snpStats$genotypes )
 )
 names_sizes <- c(
     'original',
@@ -318,7 +318,7 @@ names_sizes <- c(
 )
 # Create barplot
 barplot(
-    sizes,
+    as.numeric( sizes ),
     names.arg = names_sizes,
     main = 'Native genotype object sizes',
     xlab = 'packages',

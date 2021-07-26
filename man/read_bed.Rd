@@ -10,12 +10,14 @@ read_bed(
   names_ind = NULL,
   m_loci = NA,
   n_ind = NA,
+  ext = "bed",
   verbose = TRUE
 )
 }
 \arguments{
 \item{file}{Input file path.
-*.bed extension may be omitted (will be added automatically if it is missing).}
+*.bed extension may be omitted (will be added automatically if \code{file} doesn't exist but \code{file}.bed does).
+See \code{ext} option below.}
 
 \item{names_loci}{Vector of loci names, to become the row names of the genotype matrix.
 If provided, its length sets \code{m_loci} below.
@@ -33,6 +35,10 @@ Ignored if \code{names_loci} is provided.}
 Required if \code{names_ind = NULL}, as its value is not deducible from the BED file itself.
 Ignored if \code{names_ind} is provided.}
 
+\item{ext}{The desired file extension (default "bed").
+Ignored if \code{file} points to an existing file.
+Set to \code{NA} to force \code{file} to exist as-is.}
+
 \item{verbose}{If \code{TRUE} (default) function reports the path of the file being read (after autocompleting the extension).}
 }
 \value{
@@ -47,7 +53,8 @@ Since BED does not encode the data dimensions internally, these values must be p
 \details{
 The code enforces several checks to validate data given the requested dimensions.
 Errors are thrown if file terminates too early or does not terminate after genotype matrix is filled.
-In addition, as each locus is encoded in an integer number of bytes, and each byte contains up to four individuals, bytes with fewer than four are padded with zeroes (non-zero pads throw errors).
+In addition, as each locus is encoded in an integer number of bytes, and each byte contains up to four individuals, bytes with fewer than four are padded.
+To agree with other software (plink2, BEDMatrix), byte padding values are ignored (may take on any value without causing errors).
 
 This function only supports locus-major BED files, which are the standard for modern data.
 Format is validated via the BED file's magic numbers (first three bytes of file).

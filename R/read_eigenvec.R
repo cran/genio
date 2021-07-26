@@ -5,9 +5,10 @@
 #'
 #' @param file The input file path, potentially excluding extension.
 #' @param ext File extension (default "eigenvec") can be changed if desired.
+#' Set to `NA` to force `file` to exist as-is.
 #' @param comment A string used to identify comments.
 #' Any text after the comment characters will be silently ignored.
-#' Passed to [readr::read_table2()].
+#' Passed to [readr::read_table()].
 #' '#' (default) works for Plink 2 eigenvec files, which have a header lines that starts with this character (the header is therefore ignored).
 #' @param verbose If `TRUE` (default) function reports the path of the file being written (after autocompleting the extension).
 #'
@@ -75,7 +76,7 @@ read_eigenvec <- function(
         stop('`file` is required!')
     
     # add .ext and/or .gz if missing and needed
-    file <- real_path(file, ext)
+    file <- add_ext_read(file, ext)
     
     # announce what we ended up loading, nice to know
     if (verbose)
@@ -89,7 +90,7 @@ read_eigenvec <- function(
                         )
     
     # GCTA uses spaces (instead of tabs), so let's use this more general parser
-    eigenvec <- readr::read_table2(
+    eigenvec <- readr::read_table(
         file,
         col_names = FALSE,
         col_types = col_types,

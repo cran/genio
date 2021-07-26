@@ -9,11 +9,12 @@ read_eigenvec(file, ext = "eigenvec", comment = "#", verbose = TRUE)
 \arguments{
 \item{file}{The input file path, potentially excluding extension.}
 
-\item{ext}{File extension (default "eigenvec") can be changed if desired.}
+\item{ext}{File extension (default "eigenvec") can be changed if desired.
+Set to \code{NA} to force \code{file} to exist as-is.}
 
 \item{comment}{A string used to identify comments.
 Any text after the comment characters will be silently ignored.
-Passed to \code{\link[readr:read_table]{readr::read_table2()}}.
+Passed to \code{\link[readr:read_table]{readr::read_table()}}.
 '#' (default) works for Plink 2 eigenvec files, which have a header lines that starts with this character (the header is therefore ignored).}
 
 \item{verbose}{If \code{TRUE} (default) function reports the path of the file being written (after autocompleting the extension).}
