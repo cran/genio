@@ -166,7 +166,7 @@
 
 # genio 1.0.25 (2021-07-26)
 
-- 4rd CRAN submission
+- 4th CRAN submission
 - `write_bed/plink` with `append = TRUE` debugged to write in "binary" mode.
   - Fixed rare error observed in Windows only, where "binary" mode makes a difference, and only when written bytes matched certain special characters (such as newlines).
   - Bug probably present since `append` option was introduced in 1.0.15.9000 (2020-07-03).
@@ -177,3 +177,75 @@
   - Added tests for verbosity
 - Replaced `pryr::object_size` with `lobstr::obj_size` (a suggested package used in vignette only; the former was recently superseded by the latter)
   - One-line vignette update for a change in former `pryr::object_size` output (now of class `lobstr_bytes`), which triggered a CRAN warning.
+
+# genio 1.0.26.9000 (2021-08-12)
+
+- Function `read_eigenvec` fixed this warning:
+  - "The `value` argument of `names<-` must be a character vector as of tibble 3.0.0."
+
+# genio 1.0.27.9000 (2021-08-16)
+
+- Functions `write_bed`, `write_plink`, and `count_lines` fixed a bug: write (or read) failed if output path started with "~/" on Unix systems.
+  Problem was the path wasn't expanded in C++ code.
+  - For example, `write_plink( '~/test', X )` failed with message:
+    ```
+    Writing: ~/test.bed
+    Error in write_bed_cpp(file, X, append = append) : 
+      Could not open BED file `~/test.bed` for writing: No such file or directory
+    Calls: write_plink -> write_bed -> write_bed_cpp
+    Execution halted
+    ```
+  - Thanks to Bingsong Zhang for reporting the bug!
+
+# genio 1.0.28.9000 (2021-08-17)
+
+- Functions `read_eigenvec` and `write_eigenvec` have new option `plink2` for better handling files with headers in the default style of plink2.
+
+# genio 1.0.29.9000 (2022-01-14)
+
+- Bug fix in `count_lines` and all `read_*` functions, which use `add_ext_read` internally to sort out file paths:
+  - Now setting `ext = NA` finds files that end in a `.gz` extension that was not specified (before those files were incorrectly not found).
+  - Example: `read_matrix( 'my-file', ext = NA )` now finds and reads `my-file.gz` if it exists and `my-file` does not exist.
+- `README` fixed github installation instructions to build vignette, explained how to view it.
+
+# genio 1.0.30.9000 (2022-01-27)
+
+- Function `read_grm` added several options to facilitate reading GRM-like formats produced by `plink2`, particularly data produced by `--make-king` with `bin` or `bin4` options.  Added options:
+  - `ext` to specify alternate shared extensions (like "grm" or "king").
+  - `shape` to specify whether the input is a full "square" matrix, a "triangle" with diagonal (default for GRM) or a "strict" triangle without diagonal (for KING-robust).
+  - `size_bytes` to parse `bin4`/GRM (4) or `bin` (8) plink2 data.
+  - `comment` to control comment characters in the `<ext>.id` file.
+- Internal functions `vec_to_mat_sym` and `mat_sym_to_vec` added option `strict` to exclude diagonal in their transformations.
+- Internal function `read_tab_generic` added option `comment` to set comment characters.
+
+# genio 1.0.31.9000 (2022-01-28)
+
+- Function `write_grm` added the same options added yesterday to `read_grm` (see there) to write GRM-like formats produced by `plink2`, particularly data produced by `--make-king` with `bin` or `bin4` options.
+- Function `read_grm` edited documentation only, particularly added parsing examples for various `plink2 --make-king` outputs.
+
+# genio 1.0.32.9000 (2022-02-02)
+
+- Function `write_bed` now checks if output directory exists prior to attempting to open the file for writing in the C++ part of the code.
+  - The original code crashed "ruthlessly" in RStudio if the path contains a directory that does not exist, triggering an error such as this one on a terminal:
+	```
+	*** buffer overflow detected ***: terminated
+	Aborted (core dumped)
+	```
+  - The new code produces an ordinary (fatal) error message in R without the buffer overflow.
+  - Bug reported by Richel Bilderbeek (thanks!)
+
+# genio 1.1.0.9000 (2022-04-20)
+
+- Functions `read_bim`, `write_bim`, and `geno_to_char`: reversed columns "ref" and "alt" in BIM table
+  - Previous versions treated the first allele column from the (headerless) BIM file as "ref", second as "alt", in part because the plink 1.9 documentation was unclear about their identities (they were simply called alleles "1/clear bits/usually minor" and "2/set bits/usually major").
+  - New version has first allele column as "alt", second as "ref", after seeing plink 2.0 documentation define them explicitly this way, and after noticing reverse correspondence with ref/alt values in VCF files (thanks Ochoa Lab members Amika Sood and Tiffany Tu for reporting these issues!).
+  - `read_bim` now returns a tibble with allele names "alt" and "ref" in that order (columns still ordered as they appear in input file)
+  - `write_bim` writes tables with column "alt" before "ref"
+  - `geno_to_char` reverses the role of "alt" and "ref" correspondingly so that the output remains the same as before these changes (the original outputs were correct as validated against the plink1 "ped" text genotypes).
+  - All documentation was updated to reflect these changes.
+
+# genio 1.1.1 (2022-04-27)
+
+- 5th CRAN submission
+- Ran spellcheck (no changes)
+- Updated `cran-comments.md`
